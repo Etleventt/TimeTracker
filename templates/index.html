@@ -125,10 +125,12 @@
     <script>
         let startTime = null;
         let interval = null;
-        const currentActivity = document.getElementById('currentActivity');
-        const duration = document.getElementById('duration');
+        const currentActivityElement = document.getElementById('currentActivity');
+        const durationElement = document.getElementById('duration');
         let pieChart, barChart, dailyChart;
         let activeOption = null;
+        let currentActivity = null;
+        let timer = null;
 
         function updateCharts(date = '') {
             fetch(`/get_activity_log?date=${date}`)
@@ -317,43 +319,63 @@
         const indicator = document.querySelector('.slider-indicator');
 
         options.forEach((option, index) => {
-            option.addEventListener('click', () => {
-                if (option !== activeOption) {
-                    // 移动滑块
-                    indicator.style.left = `${index * 20}%`;
-                    
-                    // 更新活动状态
-                    options.forEach(opt => opt.classList.remove('active'));
-                    option.classList.add('active');
-                    
-                    // 切换活动
-                    switchActivity(option.dataset.activity, option);
+            option.addEventListener('click', function() {
+                const activity = this.dataset.activity;
+                
+                if (this.classList.contains('active')) {
+                    // 如果点击的是当前活动，则停止
+                    this.classList.remove('active');
+                    stopActivity();
+                } else {
+                    // 开始新活动
+                    document.querySelectorAll('.activity-option').forEach(opt => opt.classList.remove('active'));
+                    this.classList.add('active');
+                    startActivity(activity);
                 }
             });
         });
 
-        function switchActivity(activity, option) {
-            if (activeOption !== option) {
-                if (activeOption) {
-                    const endTime = new Date();
-                    const diff = Math.floor((endTime - startTime) / 1000);
-                    logActivity(currentActivity.textContent.split(': ')[1], diff);
-                }
+        function updateTimer() {
+            if (startTime && currentActivity) {
+                const now = Date.now();
+                const diff = Math.floor((now - startTime) / 1000);
+                durationElement.textContent = `持续时间: ${diff} 秒`;
+                currentActivityElement.textContent = `当前活动: ${currentActivity}`;
+            }
+        }
+
+        function startActivity(activity) {
+            if (currentActivity) {
+                stopActivity();
+            }
+            currentActivity = activity;
+            startTime = Date.now();
+            saveActivityState(activity, startTime);
+            
+            // 更新 UI
+            currentActivityElement.textContent = `当前活动: ${activity}`;
+            updateTimer();
+            timer = setInterval(updateTimer, 1000);
+            
+            // 移动滑块
+            const index = ['学习', '工作', '休息', '娱乐', '运动'].indexOf(activity);
+            if (index !== -1) {
+                document.querySelector('.slider-indicator').style.left = `${index * 20}%`;
+            }
+        }
+
+        function stopActivity() {
+            if (currentActivity) {
+                clearInterval(timer);
+                const duration = (Date.now() - startTime) / 1000;
+                logActivity(currentActivity, duration);
+                currentActivity = null;
+                startTime = null;
+                clearActivityState();
                 
-                startTime = new Date();
-                currentActivity.textContent = `当前活动: ${activity}`;
-                
-                if (interval) {
-                    clearInterval(interval);
-                }
-                
-                interval = setInterval(() => {
-                    const now = new Date();
-                    const diff = Math.floor((now - startTime) / 1000);
-                    duration.textContent = `持续时间: ${diff} 秒`;
-                }, 1000);
-                
-                activeOption = option;
+                // 更新 UI
+                currentActivityElement.textContent = '当前活动: 无';
+                durationElement.textContent = '持续时间: 0 秒';
             }
         }
 
@@ -369,6 +391,47 @@
                 updateCharts(selectedDate);
                 updateDailyActivityChart(selectedDate);
             });
+        }
+
+        // 保存当前活动到 localStorage
+        function saveActivityState(activity, start) {
+            localStorage.setItem('currentActivity', JSON.stringify({
+                activity: activity,
+                startTime: start
+            }));
+        }
+
+        // 清除保存的活动状态
+        function clearActivityState() {
+            localStorage.removeItem('currentActivity');
+        }
+
+        // 页面加载时检查未完成的活动
+        window.onload = function() {
+            const savedActivity = localStorage.getItem('currentActivity');
+            if (savedActivity) {
+                const data = JSON.parse(savedActivity);
+                currentActivity = data.activity;
+                startTime = data.startTime;
+                updateTimer();
+                timer = setInterval(updateTimer, 1000);
+                
+                // 更新UI显示
+                document.querySelectorAll('.activity-option').forEach((option, index) => {
+                    if (option.dataset.activity === currentActivity) {
+                        option.classList.add('active');
+                        // 移动滑块到正确位置
+                        document.querySelector('.slider-indicator').style.left = `${index * 20}%`;
+                    }
+                });
+            }
+        }
+
+        // 在页面关闭时保存当前活动
+        window.onbeforeunload = function() {
+            if (currentActivity) {
+                saveActivityState(currentActivity, startTime);
+            }
         }
     </script>
 </body>
