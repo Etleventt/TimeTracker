@@ -1,0 +1,43 @@
+:root {
+    --primary-color: #007bff;
+    --secondary-color: #6c757d;
+    --background-color: #f8f9fa;
+}
+
+body {
+    background-color: var(--background-color);
+    font-family: 'Arial', sans-serif;
+    padding-top: 2rem;
+}
+
+.custom-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.form-wrapper {
+    background-color: white;
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.mt-custom {
+    margin-top: 2rem;
+}
+
+.mb-custom {
+    margin-bottom: 2rem;
+}
+
+.btn-custom {
+    background-color: var(--primary-color);
+    border: none;
+    padding: 10px 20px;
+    transition: opacity 0.3s ease;
+}
+
+.btn-custom:hover {
+    opacity: 0.9;
+}
